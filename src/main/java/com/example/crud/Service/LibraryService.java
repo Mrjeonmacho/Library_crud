@@ -1,14 +1,15 @@
 package com.example.crud.Service;
 
-import com.example.crud.dto.AuthorCreationRequest;
-import com.example.crud.dto.BookLendRequest;
+import com.example.crud.RequestDto.AuthorCreationRequest;
+import com.example.crud.RequestDto.BookLendRequest;
+import com.example.crud.ResponseDto.BookResponse;
 import com.example.crud.model.*;
 import com.example.crud.repository.AuthorRepository;
 import com.example.crud.repository.BookRepository;
 import com.example.crud.repository.LendRepository;
 import com.example.crud.repository.MemberRepository;
-import com.example.crud.dto.BookCreationRequest;
-import com.example.crud.dto.MemberCreationRequest;
+import com.example.crud.RequestDto.BookCreationRequest;
+import com.example.crud.RequestDto.MemberCreationRequest;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -19,8 +20,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static com.example.crud.model.LendStatus.BURROWED;
 
 @Service
 @RequiredArgsConstructor
@@ -34,13 +33,16 @@ public class LibraryService {
 
 
     // Service 기능 구현.
-
     // 고유 책 id 값으로 검색
-    public Book readBookById(Long id) {
+    public BookResponse readBookById(Long id) {
 
-        return bookRepository.findById(id)
+        return BookResponse.of(bookRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("" +
-                        "Cant find any book under given ID"));
+                        "Cant find any book under given ID")));
+
+//        return bookRepository.findById(id)
+//                .orElseThrow(() -> new EntityNotFoundException("" +
+//                        "Cant find any book under given ID"));
 
 
 //        Optional<Book> book = bookRepository.findById(id);

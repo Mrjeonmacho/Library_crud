@@ -1,4 +1,4 @@
-package com.example.crud.dto;
+package com.example.crud.RequestDto;
 
 import lombok.Data;
 

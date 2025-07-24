@@ -3,15 +3,16 @@ package com.example.crud.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
 @Getter
-@Setter
+@Builder
 @Entity
 @Table(name = "author")
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Author {
 //  @Id:    이 필드가 **기본 키(PK)**라는 뜻입니다.
 //  @GeneratedValue(strategy = GenerationType.IDENTITY):

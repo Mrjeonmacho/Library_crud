@@ -2,7 +2,9 @@ package com.example.crud.Service;
 
 import com.example.crud.RequestDto.AuthorCreationRequest;
 import com.example.crud.RequestDto.BookLendRequest;
+import com.example.crud.ResponseDto.AuthorResponse;
 import com.example.crud.ResponseDto.BookResponse;
+import com.example.crud.ResponseDto.MemberResponse;
 import com.example.crud.model.*;
 import com.example.crud.repository.AuthorRepository;
 import com.example.crud.repository.BookRepository;
@@ -20,6 +22,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +40,7 @@ public class LibraryService {
     public BookResponse readBookById(Long id) {
 
         return BookResponse.of(bookRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("" +
-                        "Cant find any book under given ID")));
+                .orElseThrow(() -> new EntityNotFoundException("Cant find any book under given ID")));
 
 //        return bookRepository.findById(id)
 //                .orElseThrow(() -> new EntityNotFoundException("" +
@@ -56,26 +58,49 @@ public class LibraryService {
 
 
     // isbn값으로 책 검색
-    public Book readBookByIsbn(String isbn) {
-        return bookRepository.findByIsbn(isbn)
+    public BookResponse readBookByIsbn(String isbn) {
+        return BookResponse.of(bookRepository.findByIsbn(isbn)
                 .orElseThrow(() -> new EntityNotFoundException("" +
-                        "Cant find any book under given isbn"));
+                        "Cant find any book under given isbn")));
     }
 
     //    readBooks(): 데이터베이스에 저장된 모든 도서를 읽습니다.
-    public List<Book> readAllBooks() {
-        return bookRepository.findAll();
+    public List<BookResponse> readAllBooks() {
+        return BookResponse.fromList(bookRepository.findAll());
     }
 
+//    public List<BookResponse> readAllBooks() {
+//        return bookRepository.findAll();
+//    }
+
     //    createBook(BookCreationRequest book): BookCreationRequest로 도서를 생성합니다.
-    public Book createBook(BookCreationRequest bookCreationRequest) {
-        Author author = authorRepository.findById(bookCreationRequest.getAuthorId())
-                .orElseThrow(() -> new EntityNotFoundException("" +
-                        "Author Not Found"));
-        Book book = new Book();
-        BeanUtils.copyProperties(bookCreationRequest, book);
-        book.setAuthor(author);
-        return bookRepository.save(book);
+    public BookResponse createBook(BookCreationRequest bookCreationRequest) {
+        Author newAuthor = authorRepository.findByFirstNameAndLastName(
+                bookCreationRequest.getFirstName() , bookCreationRequest.getLastName())
+                .orElseGet(() ->
+//                    Author newAuthor = Author.builder()
+////                            .id(bookCreationRequest.getAuthorId())
+//                            .firstName(bookCreationRequest.getAuthorFirstName())
+//                            .lastName(bookCreationRequest.getAuthorLastName())
+//                            .build();
+//                    createAuthor(AuthorCreationRequest.of(bookCreationRequest)));
+                                createAuthor(AuthorCreationRequest.of(bookCreationRequest)).toEntity()
+                );
+
+        Book newBook = Book.builder()
+                .isbn(bookCreationRequest.getIsbn())
+                .name(bookCreationRequest.getName())
+                .author(newAuthor)
+                .build();
+        return BookResponse.of(bookRepository.save(newBook));
+    }
+    //    createAuthor (AuthorCreationRequest request): AuthorCreationRequest로 저자를 생성합니다.
+    public AuthorResponse createAuthor(AuthorCreationRequest authorCreationRequest) {
+        Author author = Author.builder()
+                .firstName(authorCreationRequest.getFirstName())
+                .lastName(authorCreationRequest.getLastName())
+                .build();
+        return AuthorResponse.of(authorRepository.save(author));
     }
 
     //    deleteBook(String id): id를 기준으로 도서를 삭제합니다.
@@ -83,28 +108,41 @@ public class LibraryService {
         bookRepository.deleteById(id);
     }
 
+
+
     //    createMember(MemberCreationRequest request): MemberCreationRequest로 회원을 생성합니다.
-    public Member createMember(MemberCreationRequest memberCreationRequest) {
-        Member member = new Member();
-        BeanUtils.copyProperties(memberCreationRequest, member);
-        return memberRepository.save(member);
+    public MemberResponse createMember(MemberCreationRequest memberCreationRequest) {
+//        Member member = new Member();
+        Member member = Member.builder()
+                .firstName(memberCreationRequest.getFirstName())
+                .lastName(memberCreationRequest.getLastName())
+                .status(MemberStatus.ACTIVE)
+                .build();
+        return MemberResponse.of(memberRepository.save(member));
     }
 
+
+
     //    updateMember (Long id, MemberCreationRequest request): id에 해당하는 회원을 Member Creation Request로 변경합니다.
-    public Member updateMember(Long id, MemberCreationRequest memberCreationRequest) {
+    public MemberResponse updateMember(Long id, MemberCreationRequest memberCreationRequest) {
         Member member = memberRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Member Not Found"));
 
-        BeanUtils.copyProperties(memberCreationRequest, member);
-        return memberRepository.save(member);
+//        BeanUtils.copyProperties(memberCreationRequest, member);
+
+//        Member member = Member.builder() 빌더는 객체를 생성할때 쓰는거지, 업데이트 할때는 쓰면 안됨
+//                .firstName(memberCreationRequest.getFirstName())
+//                .lastName(memberCreationRequest.getLastName())
+//                .status(memberCreationRequest.getStatus()) // 필요시
+//                .build();
+        member.updateInfo(
+                memberCreationRequest.getFirstName(),
+                memberCreationRequest.getLastName()
+        );
+        return MemberResponse.of(memberRepository.save(member));
     }
 
-    //    createAuthor (AuthorCreationRequest request): AuthorCreationRequest로 저자를 생성합니다.
-    public Author createAuthor(AuthorCreationRequest authorCreationRequest) {
-        Author author = new Author();
-        BeanUtils.copyProperties(authorCreationRequest, author);
-        return authorRepository.save(author);
-    }
+
 
 
     //    lendABook : 여러개의 책을 빌릴때
@@ -113,23 +151,23 @@ public class LibraryService {
         List<String> Borrow_book = new ArrayList<>();
 
         //사용자DB에 요청하는사용자가 있는지
-        Member memberFindId = memberRepository.findById(bookLendRequest.getMemberId())
+        Member member = memberRepository.findById(bookLendRequest.getMemberId())
                 .orElseThrow(() -> new EntityNotFoundException("Member Not Found"));
 
         //요청들어온 책 하나씩 판단하기
         bookLendRequest.getBookIds().forEach(bookRequest -> {
             //요청된 책이 DB에 있는지
-            Book bookFindId = bookRepository.findById(bookRequest)
+            Book book = bookRepository.findById(bookRequest)
                     .orElseThrow(() -> new EntityNotFoundException("Book Not Found"));
 
             //만약 있다면 대출되는지 확인해야함
-            Optional<Lend> lendOptional = lendRepository.findByBookAndStatus(bookFindId, LendStatus.BURROWED);
+            Optional<Lend> lendOptional = lendRepository.findByBookAndStatus(book, LendStatus.BURROWED);
 
             if (lendOptional.isEmpty()) {
-                Borrow_book.add(bookFindId.getName());
+                Borrow_book.add(book.getName());
                 Lend newLend = Lend.builder()
-                        .member(memberFindId)
-                        .book(bookFindId)
+                        .member(member)
+                        .book(book)
                         .status(LendStatus.BURROWED)
                         .startOn(Instant.now())
                         .endOn(Instant.now().plus(30, ChronoUnit.DAYS))

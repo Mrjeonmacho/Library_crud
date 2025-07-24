@@ -3,15 +3,16 @@ package com.example.crud.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
 @Getter
-@Setter
 @Entity
+@Builder
 @Table(name = "book")
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Book {
     //도서 모델은 PK 도서명, ISBN번호 필드를 갖습니다.
     @Id
@@ -19,7 +20,6 @@ public class Book {
     private Long id;
     private String name;
     private String isbn;
-
 
     // 🔽 5-1 관계 설정: Book → Author (N:1)
     @ManyToOne

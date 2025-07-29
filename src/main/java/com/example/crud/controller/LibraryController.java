@@ -2,6 +2,7 @@ package com.example.crud.controller;
 
 import com.example.crud.RequestDto.AuthorCreationRequest;
 import com.example.crud.RequestDto.BookCreationRequest;
+import com.example.crud.RequestDto.BookLendRequest;
 import com.example.crud.RequestDto.MemberCreationRequest;
 import com.example.crud.ResponseDto.AuthorResponse;
 import com.example.crud.ResponseDto.BookResponse;
@@ -53,19 +54,22 @@ public class LibraryController {
     }
     @PostMapping("/author") // 저자 추가
     public ResponseEntity<AuthorResponse> createAuthor(@RequestBody AuthorCreationRequest authorCreationRequest) {
-        return ResponseEntity.ok(libraryService.createAuthor(authorCreationRequest));
+        return ResponseEntity.ok(AuthorResponse.of(libraryService.createAuthor(authorCreationRequest)));
     }
 
     @PostMapping("/member") // 사용자 추가
     public ResponseEntity<MemberResponse> createMember(@RequestBody MemberCreationRequest memberCreationRequest) {
-        return ResponseEntity.ok(libraryService.createMember(memberCreationRequest));
+        return ResponseEntity.ok(MemberResponse.of(libraryService.createMember(memberCreationRequest)));
 
     }
     @PatchMapping("/member/{memberId}") // 사용자 업데이트
     public ResponseEntity<MemberResponse> updateMember(@PathVariable Long memberId,@RequestBody MemberCreationRequest memberCreationRequest) {
-//        return ResponseEntity<MemberResponse>.ok(libraryService.updateMember(memberId, memberCreationRequest));
-        return null;
+        return ResponseEntity.ok(libraryService.updateMember(memberId, memberCreationRequest));
     }
-//    @PostMapping("/book/lend") // 책 빌리기
+    @PostMapping("/book/lend") // 책 빌리기
+    public ResponseEntity<List<String>> lendBook(@RequestBody BookLendRequest bookLendRequest) {
+        return ResponseEntity.ok(libraryService.lendBook(bookLendRequest));
+    }
+
 }
 

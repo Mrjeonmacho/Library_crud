@@ -13,7 +13,9 @@ import com.example.crud.repository.MemberRepository;
 import com.example.crud.RequestDto.BookCreationRequest;
 import com.example.crud.RequestDto.MemberCreationRequest;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LibraryService {
@@ -74,7 +77,16 @@ public class LibraryService {
 //    }
 
     //    createBook(BookCreationRequest book): BookCreationRequest로 도서를 생성합니다.
+    @Transactional
     public BookResponse createBook(BookCreationRequest bookCreationRequest) {
+        //책과 아더는 1대다 관계니까 책이 있으면 새로 만들 필요가 없음
+//        bookRepository.findByIsbn(bookCreationRequest.getIsbn())
+//                .ifPresent(book -> {
+//                    // 책 있으면 바로 반환 처리
+//                    return BookResponse.of(  bookRepository.findByIsbn(bookCreationRequest.getIsbn()).get() );
+//                });
+
+        // 저자가 있는지 확인하고 없으면 저자 생성
         Author newAuthor = authorRepository.findByFirstNameAndLastName(
                 bookCreationRequest.getFirstName() , bookCreationRequest.getLastName())
                 .orElseGet(() ->
@@ -84,26 +96,39 @@ public class LibraryService {
 //                            .lastName(bookCreationRequest.getAuthorLastName())
 //                            .build();
 //                    createAuthor(AuthorCreationRequest.of(bookCreationRequest)));
-                                createAuthor(AuthorCreationRequest.of(bookCreationRequest)).toEntity()
+                                createAuthor(AuthorCreationRequest.of(bookCreationRequest))
+                );
+        // 저저와 책은 다대1 관계임
+        Book newBook = bookRepository.findByIsbn(bookCreationRequest.getIsbn())
+                .orElseGet( () ->
+                            Book.builder()
+                                    .isbn(bookCreationRequest.getIsbn())
+                                    .name(bookCreationRequest.getName())
+                                    .author(newAuthor)
+                                    .build()
+
+
                 );
 
-        Book newBook = Book.builder()
-                .isbn(bookCreationRequest.getIsbn())
-                .name(bookCreationRequest.getName())
-                .author(newAuthor)
-                .build();
         return BookResponse.of(bookRepository.save(newBook));
+//        케이스	처리 문제
+//        1번	정상 처리	✅
+//        2번	논리적 오류 있음 (저자만 새로 생성, 책은 기존 책 리턴)	❌
+//        3번	정상 처리	✅
+//        4번	정상 처리	✅
     }
     //    createAuthor (AuthorCreationRequest request): AuthorCreationRequest로 저자를 생성합니다.
-    public AuthorResponse createAuthor(AuthorCreationRequest authorCreationRequest) {
+    @Transactional
+    public Author createAuthor(AuthorCreationRequest authorCreationRequest) {
         Author author = Author.builder()
                 .firstName(authorCreationRequest.getFirstName())
                 .lastName(authorCreationRequest.getLastName())
                 .build();
-        return AuthorResponse.of(authorRepository.save(author));
+        return authorRepository.save(author);
     }
 
     //    deleteBook(String id): id를 기준으로 도서를 삭제합니다.
+    @Transactional
     public void deleteBookById(Long id) {
         bookRepository.deleteById(id);
     }
@@ -111,14 +136,15 @@ public class LibraryService {
 
 
     //    createMember(MemberCreationRequest request): MemberCreationRequest로 회원을 생성합니다.
-    public MemberResponse createMember(MemberCreationRequest memberCreationRequest) {
+    @Transactional
+    public Member createMember(MemberCreationRequest memberCreationRequest) {
 //        Member member = new Member();
         Member member = Member.builder()
                 .firstName(memberCreationRequest.getFirstName())
                 .lastName(memberCreationRequest.getLastName())
                 .status(MemberStatus.ACTIVE)
                 .build();
-        return MemberResponse.of(memberRepository.save(member));
+        return memberRepository.save(member);
     }
 
 
